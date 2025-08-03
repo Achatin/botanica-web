@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "nodemon --exec ts-node-esm server.ts",
     "lint": "next lint",
     "server": "nodemon --exec ts-node-esm server.ts",
     "init-db": "ts-node-esm scripts/init-db.ts"
