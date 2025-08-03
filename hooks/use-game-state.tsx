@@ -5,11 +5,11 @@ import { MUTATIONS, PLANT_TYPES } from "@/lib/game-data"
 import type { Plant, GameState, Mutation, WeatherCondition, Player } from "@/lib/types"
 import { calculatePlantValue } from "@/lib/utils"
 import { useServer } from "./use-server"
-import { io, Socket } from "socket.io-client"
+// import { io, Socket } from "socket.io-client"
 
 const GameContext = createContext<GameState | null>(null);
 
-let socket: Socket;
+// let socket: Socket;
 
 export function GameProvider({ children }: { children: ReactNode }) {
   const [id, setId] = useState<string | null>(null);
@@ -25,31 +25,56 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [gameTime, setGameTime] = useState(0);
 
   useEffect(() => {
-    socket = io('/', {
-      path: '/socket.io',
-      transports: ['websocket'],
-    });
+    const name = "Achatin";
+    const eventSource = new EventSource(`/api/events?clientId=${name}`);
 
-    socket.on('game_state', (state: GameState) => {
-      setShop(state.shop);
-      setWeather(state.weather);
-      setGameTime(state.gameTime);
+    eventSource.onmessage = (event) => {
+      try {
+        const data: GameState = JSON.parse(event.data);
+        setShop(data.shop);
+        setWeather(data.weather);
+        setGameTime(data.gameTime);
 
-      updatePlants(state.weather);
-    });
-
-    return () => {
-      socket.disconnect();
+        updatePlants(data.weather);
+      } catch (err) {
+        console.error('Error parsing game state:', err);
+      }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    eventSource.onerror = () => {
+      console.warn('SSE error — closing connection');
+      eventSource.close();
+    };
+
+    return () => eventSource.close();
   }, []);
+
+  // useEffect(() => {
+  //   socket = io('/', {
+  //     path: '/socket.io',
+  //     transports: ['websocket'],
+  //   });
+
+  //   socket.on('game_state', (state: GameState) => {
+  //     setShop(state.shop);
+  //     setWeather(state.weather);
+  //     setGameTime(state.gameTime);
+
+  //     updatePlants(state.weather);
+  //   });
+
+  //   return () => {
+  //     socket.disconnect();
+  //   };
+  // // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   const loadPlayer = (player: Player) => {
     setId(player.id);
     setCoins(player.coins || 100);
     setInventory(player.inventory || {});
 
-    socket.emit("update_playerboard", {id: player.id, coins: player.coins});
+    // socket.emit("update_playerboard", {id: player.id, coins: player.coins});
   };
 
   const loadPlants = (plants: Plant[]) => {
@@ -74,20 +99,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
   }, [coins, inventory, plants]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (id === null) return;
-      socket.emit("save_player", {
-        id,
-        coins: gameStateRef.current.coins,
-        inventory: gameStateRef.current.inventory,
-        plants: gameStateRef.current.plants,
-      });
-      console.log("Auto-saved to server at", new Date().toLocaleTimeString());
-    }, 30000);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     if (id === null) return;
+  //     socket.emit("save_player", {
+  //       id,
+  //       coins: gameStateRef.current.coins,
+  //       inventory: gameStateRef.current.inventory,
+  //       plants: gameStateRef.current.plants,
+  //     });
+  //     console.log("Auto-saved to server at", new Date().toLocaleTimeString());
+  //   }, 30000);
 
-    return () => clearInterval(interval);
-  }, [id]);
+  //   return () => clearInterval(interval);
+  // }, [id]);
 
   const getWeight = (minWeight: number, maxWeight: number): number => {
     const chance = Math.random();

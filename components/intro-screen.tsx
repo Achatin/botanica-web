@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useServer } from "@/hooks/use-server";
 import { Button } from "./ui/button";
 import { useGameState } from "@/hooks/use-game-state";
 import { Plant, Player } from "@/lib/types";
 
 export function IntroScreen({ onStart }: { onStart: () => void }) {
-  const { serverId } = useServer();
+  // const { serverId } = useServer();
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,6 +18,8 @@ export function IntroScreen({ onStart }: { onStart: () => void }) {
 
     setLoading(true);
     try {
+      new EventSource(`/api/events?clientId=${name}`);
+
       const res = await fetch(`/api/player/${encodeURIComponent(name.trim())}`);
       if (!res.ok) {
         throw new Error(`Failed to load player: ${res.statusText}`);
@@ -58,7 +59,6 @@ export function IntroScreen({ onStart }: { onStart: () => void }) {
         />
         <Button
           onClick={handleStart}
-          disabled={serverId === null || name.trim() === "" || loading}
           size="lg"
         >
           {loading ? "Loading..." : "Play now"}
